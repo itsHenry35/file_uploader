@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>File Uploader</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			padding: 20px;
+            background-color: #f2f2f2;
+		}
+
+		#dropzone {
+			border: 2px dashed #ccc;
+			padding: 20px;
+			text-align: center;
+			cursor: pointer;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.2);
+		}
+
+		#dropzone.highlight {
+			background-color: #f2f2f2;
+		}
+
+		#progressbar {
+			border: 1px solid #ccc;
+			height: 20px;
+			margin: 10px 0;
+			position: relative;
+            border-radius: 10px;
+		}
+
+		#progressbar > div {
+			background-color: #428bca;
+			height: 100%;
+			position: absolute;
+            border-radius: 10px;
+		}
+
+		#response {
+			display: none;
+			margin-top: 20px;
+			padding: 10px;
+			border: 1px solid #ccc;
+			background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.2);
+		}
+
+		#error {
+			color: red;
+		}
+
+		#textbox {
+			margin-top: 20px;
+			padding: 10px;
+			border: 1px solid #ccc;
+			background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.2);
+		}
+	</style>
+</head>
+<body>
+
+	<div id="dropzone">
+		<h1>File Uploader</h1>
+		<p>Drag and drop files here or</p>
+		<p><button id="select-files-btn" style="background-color: #428bca; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Select Files</button></p>
+		<p id="speed"></p>
+	</div>
+
+	<div id="progressbar">
+		<div></div>
+	</div>
+
+	<div id="response">
+		<p id="messagebox"></p>
+		<ul id="filelist"></ul>
+		<p id="filelinkbox"></p>
+	</div>
+
+	<div id="error"></div>
+
+	<div id="textbox">
+		<textarea id="result" cols="80" rows="10" readonly></textarea>
+	</div>
+
+	<script>
+		var dropzone = document.getElementById("dropzone");
+		var progressBar = document.querySelector("#progressbar > div");
+		var speed = document.getElementById("speed");
+		var responseBox = document.getElementById("response");
+		var messageBox = document.getElementById("messagebox");
+		var fileList = document.getElementById("filelist");
+		var errorBox = document.getElementById("error");
+		var resultBox = document.getElementById("result");
+        var totalSize = 0;
+        var uploadedSize = 0;
+        var remainingTime = 0;
+
+		function handleFiles(files) {
+			if (files.length === 0) {
+				errorBox.textContent = "Error: No files found";
+				return;
+			}
+
+			progressBar.style.width = "0%";
+			responseBox.style.display = "none";
+			errorBox.textContent = "";
+
+			var formData = new FormData();
+
+			for (var i = 0; i < files.length; i++) {
+				var file = files[i];
+				formData.append("files[]", file);
+                totalSize += file.size;
+				var li = document.createElement("li");
+				li.textContent = file.name;
+				fileList.appendChild(li);
+			}
+
+var xhr = new XMLHttpRequest();
+xhr.upload.addEventListener("progress", function(event) {
+				if (event.lengthComputable) {
+					var percentComplete = Math.round(event.loaded / event.total * 100);
+					progressBar.style.width = percentComplete + "%";
+                    uploadedSize = event.loaded;
+                    remainingTime = ((totalSize - uploadedSize) / (uploadedSize / (Date.now() - start))).toFixed(2);
+                    remainingTime = (remainingTime / 1000).toFixed(2);
+                    var elapsedTime = (Date.now() - start) / 1000;
+                    var uploadSpeed = (uploadedSize / 1024 / elapsedTime).toFixed(2);
+                    var uploadSpeedMB = (uploadSpeed / 1024).toFixed(2);
+                    speed.textContent = "Upload speed: " + uploadSpeedMB + " MB/s" + " | " + (uploadedSize / 1024 / 1024).toFixed(2) + "MB/" + (totalSize / 1024 / 1024).toFixed(2) + "MB" + " | " + remainingTime + "s remaining";
+				}
+			}, false);
+
+
+
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState === 4) {
+					responseBox.style.display = "block";
+					var data = xhr.responseText;
+					resultBox.value = xhr.responseText;
+				}
+			};
+
+			var start = Date.now();
+			xhr.open("POST", "upload.php");
+			xhr.send(formData);
+		}
+
+		dropzone.addEventListener("dragover", function(event) {
+			event.preventDefault();
+			dropzone.classList.add("highlight");
+		});
+
+		dropzone.addEventListener("dragleave", function(event) {
+			event.preventDefault();
+			dropzone.classList.remove("highlight");
+		});
+
+		dropzone.addEventListener("drop", function(event) {
+			event.preventDefault();
+			dropzone.classList.remove("highlight");
+			var files = event.dataTransfer.files;
+			handleFiles(files);
+		});
+
+        document.getElementById("select-files-btn").addEventListener("click", function() {
+            var input = document.createElement("input");
+			input.setAttribute("type", "file");
+            input.setAttribute("multiple", true);
+            input.onchange = function() {
+                var files = this.files;
+                handleFiles(files);
+            };
+            input.click();
+        });
+	</script>
+</body>
+</html>
+
+
+
+
